@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:apk_apotek_unjaya/apk/daftar.dart';
-
+import 'package:apk_apotek_unjaya/apk/daftar 17.43.11.dart';
+import 'package:apk_apotek_unjaya/apk/navigation/home.dart';
+import 'package:apk_apotek_unjaya/apk/api_service.dart';
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
 
@@ -13,8 +14,41 @@ class LoginScreen extends StatelessWidget {
   }
 }
 
-class LoginPage extends StatelessWidget {
+class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
+
+  @override
+  _LoginPageState createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+
+  // Fungsi untuk menangani login
+  void _handleLogin() async {
+    final email = _emailController.text;
+    final password = _passwordController.text;
+
+    final response = await ApiService.loginUser(email, password);
+
+    if (response.containsKey('message')) {
+      // Login berhasil
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(response['message'])),
+      );
+      // Navigasi ke halaman utama setelah login berhasil
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => HomeScreen()), // Ganti dengan halaman utama Anda
+      );
+    } else {
+      // Login gagal
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(response['error'])),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -61,6 +95,7 @@ class LoginPage extends StatelessWidget {
             const SizedBox(height: 32),
             // Email Input
             TextField(
+              controller: _emailController,
               decoration: InputDecoration(
                 labelText: 'Masukan email',
                 prefixIcon: const Icon(Icons.email),
@@ -72,6 +107,7 @@ class LoginPage extends StatelessWidget {
             const SizedBox(height: 16),
             // Password Input
             TextField(
+              controller: _passwordController,
               obscureText: true,
               decoration: InputDecoration(
                 labelText: 'Masukan password',
@@ -97,10 +133,7 @@ class LoginPage extends StatelessWidget {
               width: double.infinity,
               height: 50,
               child: ElevatedButton(
-                onPressed: () {
-                  // Handle login logic
-                  debugPrint('Login button pressed');
-                },
+                onPressed: _handleLogin,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.teal,
                   shape: RoundedRectangleBorder(
