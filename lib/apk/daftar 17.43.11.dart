@@ -1,8 +1,61 @@
 import 'package:flutter/material.dart';
-import 'package:apk_apotek_unjaya/apk/login.dart';
+import'package:apk_apotek_unjaya/apk/login 17.43.11.dart';
+import 'package:apk_apotek_unjaya/apk/api_service.dart'; // Import ApiService
 
-class RegisterScreen extends StatelessWidget {
+class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
+
+  @override
+  _RegisterScreenState createState() => _RegisterScreenState();
+}
+
+class _RegisterScreenState extends State<RegisterScreen> {
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController = TextEditingController();
+
+  // Function to handle the registration
+  void _handleRegister() async {
+    final name = _nameController.text;
+    final email = _emailController.text;
+    final password = _passwordController.text;
+    final confirmPassword = _confirmPasswordController.text;
+
+    // Validasi input sebelum mengirim request
+    if (name.isEmpty || email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('All fields are required')),
+      );
+      return;
+    }
+
+    if (password != confirmPassword) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Password and Confirm Password do not match')),
+      );
+      return;
+    }
+
+    // Call the register API
+    final response = await ApiService.registerUser(name, email, password, confirmPassword);
+
+    if (response.containsKey('message')) {
+      // Success: show success message and navigate to login page
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(response['message'])),
+      );
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+      );
+    } else {
+      // Error: show error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(response['error'])),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -50,20 +103,17 @@ class RegisterScreen extends StatelessWidget {
               ),
               const SizedBox(height: 32),
               // Form Input
-              _buildTextField('Name', Icons.person),
+              _buildTextField('Name', Icons.person, controller: _nameController),
               const SizedBox(height: 16),
-              _buildTextField('Email', Icons.email),
+              _buildTextField('Email', Icons.email, controller: _emailController),
               const SizedBox(height: 16),
-              _buildTextField('Password', Icons.lock, isPassword: true),
+              _buildTextField('Password', Icons.lock, controller: _passwordController, isPassword: true),
               const SizedBox(height: 16),
-              _buildTextField('Confirm Password', Icons.lock, isPassword: true),
+              _buildTextField('Confirm Password', Icons.lock, controller: _confirmPasswordController, isPassword: true),
               const SizedBox(height: 20),
               // Tombol Daftar
               ElevatedButton(
-                onPressed: () {
-                  // Handle registration logic here
-                  debugPrint('Register button pressed');
-                },
+                onPressed: _handleRegister, // Handle registration here
                 style: ElevatedButton.styleFrom(
                   minimumSize: const Size(double.infinity, 50),
                   backgroundColor: Colors.teal, // Warna tombol
@@ -106,8 +156,9 @@ class RegisterScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTextField(String label, IconData icon, {bool isPassword = false}) {
+  Widget _buildTextField(String label, IconData icon, {bool isPassword = false, TextEditingController? controller}) {
     return TextField(
+      controller: controller,
       obscureText: isPassword,
       decoration: InputDecoration(
         labelText: label,
