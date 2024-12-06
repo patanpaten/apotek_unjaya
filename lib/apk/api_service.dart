@@ -40,6 +40,7 @@ class ApiService {
   }
 
   // Fungsi untuk login user
+  // Fungsi untuk login user (termasuk admin)
   static Future<Map<String, dynamic>> loginUser(String email, String password) async {
     final url = Uri.parse('$_baseUrl/api/login'); // Endpoint login
 
@@ -59,11 +60,23 @@ class ApiService {
 
       // Mengecek apakah request berhasil
       if (response.statusCode == 200) {
-        // Jika berhasil, kembalikan response sebagai map
         final Map<String, dynamic> responseBody = json.decode(response.body);
-        return {'message': responseBody['message'], 'user': responseBody['user']};
+
+        // Tambahkan logika untuk memisahkan admin dan user biasa
+        if (responseBody['is_admin'] == true) {
+          return {
+            'message': 'Welcome Admin!',
+            'is_admin': true,
+            'user': responseBody['user'], // Informasi admin
+          };
+        } else {
+          return {
+            'message': responseBody['message'],
+            'is_admin': false,
+            'user': responseBody['user'], // Informasi pengguna biasa
+          };
+        }
       } else {
-        // Jika gagal, kembalikan error message
         final Map<String, dynamic> responseBody = json.decode(response.body);
         return {'error': responseBody['error'] ?? 'Invalid email or password'};
       }

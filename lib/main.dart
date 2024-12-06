@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:apk_apotek_unjaya/apk/welcome_screen.dart';  // Mengimpor halaman WelcomeScreen
-
+import 'package:apk_apotek_unjaya/apk/welcome_screen.dart'; // Mengimpor halaman WelcomeScreen
+import 'package:apk_apotek_unjaya/apk/navigation/home.dart'; // Mengimpor halaman HomeScreen
+import 'package:apk_apotek_unjaya/apk/navigation/notifikasi.dart'; // Mengimpor halaman Notifikasi
+import 'package:apk_apotek_unjaya/apk/navigation/keranjang.dart'; // Mengimpor halaman Keranjang
+import 'package:apk_apotek_unjaya/apk/navigation/all_products.dart';
 void main() {
   runApp(const MyApp());
 }
@@ -12,10 +15,16 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: const SplashScreen(),  // Halaman splash screen pertama kali muncul
+      home: const SplashScreen(), // Halaman splash screen pertama kali muncul
       theme: ThemeData(
         primarySwatch: Colors.teal,
       ),
+      routes: {
+        '/home': (context) => const HomeScreen(), // Rute untuk halaman HomeScreen
+        '/notifikasi': (context) => const NotifikasiPage(), // Rute untuk halaman Notifikasi
+        '/keranjang': (context) => const KeranjangPage(), // Rute untuk halaman Keranjang
+
+      },
     );
   }
 }
@@ -45,17 +54,17 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,  // Background warna splash screen
+      backgroundColor: Colors.white, // Background warna splash screen
       body: Center(
         child: AnimatedOpacity(
           opacity: 1.0,
-          duration: const Duration(seconds: 2),  // Durasi animasi logo
+          duration: const Duration(seconds: 2), // Durasi animasi logo
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               // Logo animasi
               Image.asset(
-                'assets/images/logo-apk.png',  // Pastikan path gambar benar
+                'assets/images/logo-apk.png', // Pastikan path gambar benar
                 width: 150,
                 height: 150,
               ),
