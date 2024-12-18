@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
 import 'dart:convert';
 
 class AddProdukPage extends StatefulWidget {
@@ -12,27 +14,60 @@ class _AddProdukPageState extends State<AddProdukPage> {
   final _priceController = TextEditingController();
   final _stockController = TextEditingController();
   final _descriptionController = TextEditingController();
-  final _imageController = TextEditingController();
+  File? _image;
 
+  // Fungsi untuk memilih gambar
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    setState(() {
+      if (pickedFile != null) {
+        _image = File(pickedFile.path);
+      } else {
+        _image = null;
+      }
+    });
+  }
+
+  // Fungsi untuk menambahkan produk
   Future<void> addProduct() async {
-    final response = await http.post(
-      Uri.parse('http://10.0.2.2:5000/api/products'),
-      headers: <String, String>{
-        'Content-Type': 'application/json; charset=UTF-8',
-      },
-      body: json.encode({
-        'name': _nameController.text,
-        'price': double.parse(_priceController.text),
-        'stock': int.parse(_stockController.text),
-        'description': _descriptionController.text,
-        'image_url': _imageController.text,
-      }),
-    );
+    if (_image == null || _nameController.text.isEmpty || _priceController.text.isEmpty || _stockController.text.isEmpty || _descriptionController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Silakan lengkapi semua kolom')));
+      return;
+    }
 
-    if (response.statusCode == 201) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Product added successfully!')));
-    } else {
-      throw Exception('Failed to add product');
+    var request = http.MultipartRequest(
+        'POST', Uri.parse('http://10.0.2.2:5000/api/products'));
+
+    // Menambahkan file gambar
+    request.files.add(await http.MultipartFile.fromPath('image', _image!.path));
+
+    // Menambahkan data form
+    request.fields['name'] = _nameController.text;
+    request.fields['price'] = _priceController.text;
+    request.fields['stock'] = _stockController.text;
+    request.fields['description'] = _descriptionController.text;
+
+    try {
+      // Mengirim request ke server
+      var response = await request.send();
+
+      // Menangani respons server
+      if (response.statusCode == 201) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Produk berhasil ditambahkan')));
+        setState(() {
+          _image = null;  // Reset gambar setelah berhasil ditambahkan
+          _nameController.clear();
+          _priceController.clear();
+          _stockController.clear();
+          _descriptionController.clear();
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal menambahkan produk')));
+      }
+    } catch (e) {
+      print(e);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Terjadi kesalahan')));
     }
   }
 
@@ -40,44 +75,68 @@ class _AddProdukPageState extends State<AddProdukPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Add New Product'),
+        title: Text('Tambah Produk Baru'),
         backgroundColor: Colors.teal,
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
+            // Nama produk
             TextField(
               controller: _nameController,
-              decoration: InputDecoration(labelText: 'Product Name'),
+              decoration: InputDecoration(labelText: 'Nama Produk'),
             ),
+            SizedBox(height: 8),
+            // Harga produk
             TextField(
               controller: _priceController,
-              decoration: InputDecoration(labelText: 'Price'),
+              decoration: InputDecoration(labelText: 'Harga'),
               keyboardType: TextInputType.number,
             ),
+            SizedBox(height: 8),
+            // Stok produk
             TextField(
               controller: _stockController,
-              decoration: InputDecoration(labelText: 'Stock'),
+              decoration: InputDecoration(labelText: 'Stok'),
               keyboardType: TextInputType.number,
             ),
+            SizedBox(height: 8),
+            // Deskripsi produk
             TextField(
               controller: _descriptionController,
-              decoration: InputDecoration(labelText: 'Description'),
+              decoration: InputDecoration(labelText: 'Deskripsi'),
             ),
-            TextField(
-              controller: _imageController,
-              decoration: InputDecoration(labelText: 'Image URL'),
-            ),
-            SizedBox(height: 20),
+            SizedBox(height: 8),
+            // Tombol untuk memilih gambar
             ElevatedButton(
-              onPressed: () {
-                addProduct();
-              },
-              child: Text('Add Product'),
+              onPressed: _pickImage,
+              child: Text('Pilih Gambar'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.teal,
+              ),
+            ),
+            SizedBox(height: 8),
+            // Menampilkan gambar yang dipilih
+            _image != null
+                ? Image.file(
+              _image!,
+              width: MediaQuery.of(context).size.width * 0.5,
+              height: 150,
+              fit: BoxFit.cover,
+            )
+                : Text('Belum ada gambar'),
+            SizedBox(height: 16),
+            // Tombol untuk menambahkan produk
+            Center(
+              child: ElevatedButton(
+                onPressed: addProduct,
+                child: Text('Tambah Produk'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.teal,
+                  padding: EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                ),
               ),
             ),
           ],

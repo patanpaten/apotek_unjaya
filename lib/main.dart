@@ -1,11 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:apk_apotek_unjaya/apk/welcome_screen.dart'; // Mengimpor halaman WelcomeScreen
 import 'package:apk_apotek_unjaya/apk/navigation/home.dart'; // Mengimpor halaman HomeScreen
 import 'package:apk_apotek_unjaya/apk/navigation/notifikasi.dart'; // Mengimpor halaman Notifikasi
-import 'package:apk_apotek_unjaya/apk/navigation/keranjang.dart'; // Mengimpor halaman Keranjang
-import 'package:apk_apotek_unjaya/apk/navigation/all_products.dart';
+import 'package:apk_apotek_unjaya/apk/navigation/all_products.dart'; // Mengimpor halaman AllProducts
+import 'package:apk_apotek_unjaya/apk/componen/article_list_screen.dart'; // Mengimpor halaman Artikel
+import 'package:apk_apotek_unjaya/apk/models/cart_provider.dart';
+import 'package:apk_apotek_unjaya/apk/navigation/user_account.dart';// Mengimpor CartProvider untuk manajemen keranjang belanja
+
 void main() {
-  runApp(const MyApp());
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => CartProvider()), // Menambahkan CartProvider untuk manajemen data keranjang
+      ],
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -21,9 +32,10 @@ class MyApp extends StatelessWidget {
       ),
       routes: {
         '/home': (context) => const HomeScreen(), // Rute untuk halaman HomeScreen
+        '/articles': (context) => ArticleListScreen(), // Rute untuk halaman Artikel
         '/notifikasi': (context) => const NotifikasiPage(), // Rute untuk halaman Notifikasi
-        '/keranjang': (context) => const KeranjangPage(), // Rute untuk halaman Keranjang
-
+        '/all-products': (context) => const AllProductsPage(), // Rute untuk halaman AllProducts
+        '/useraccount': (context) => const UserAccountPage(), // Route ke halaman UserAccount
       },
     );
   }

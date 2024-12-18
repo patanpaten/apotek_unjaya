@@ -9,17 +9,6 @@ class DashboardPage extends StatelessWidget {
         title: const Text('Dashboard Admin'),
         backgroundColor: Colors.teal,
         elevation: 0,
-        actions: [
-          IconButton(
-            icon: Icon(Icons.add),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => CreatePage()), // Navigasi ke CreatePage
-              );
-            },
-          ),
-        ],
       ),
       body: Center(
         child: Text(

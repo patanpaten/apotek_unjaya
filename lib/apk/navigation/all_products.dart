@@ -1,137 +1,242 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
 import 'dart:convert';
-import 'package:intl/intl.dart'; // Import intl package for formatting
-
-// Model Product untuk memetakan data produk dari API
-class Product {
-  final int id;
-  final String name;
-  final double price;
-  final int stock;
-  final String description;
-
-  Product({
-    required this.id,
-    required this.name,
-    required this.price,
-    required this.stock,
-    required this.description,
-  });
-
-  factory Product.fromJson(Map<String, dynamic> json) {
-    return Product(
-      id: json['id'],
-      name: json['name'],
-      // Perbaiki konversi price dari String menjadi double
-      price: double.tryParse(json['price'].toString()) ?? 0.0, // Jika gagal konversi, nilai default 0.0
-      stock: json['stock'],
-      description: json['description'],
-    );
-  }
-}
+import 'package:http/http.dart' as http;
+import 'package:apk_apotek_unjaya/apk/models/cart_provider.dart';
+import 'package:apk_apotek_unjaya/apk/navigation/shopping_cart_page.dart';
+import 'package:apk_apotek_unjaya/apk/componen/ProductDetailPage.dart';
+import 'package:apk_apotek_unjaya/apk/componen/drawer_menu.dart'; // Import DrawerMenu
 
 class AllProductsPage extends StatefulWidget {
-  const AllProductsPage({Key? key}) : super(key: key);
+  const AllProductsPage({super.key});
 
   @override
   _AllProductsPageState createState() => _AllProductsPageState();
 }
 
 class _AllProductsPageState extends State<AllProductsPage> {
-  // Daftar produk yang akan ditampilkan
-  List<Product> _products = [];
-  bool _isLoading = true;
-  String _errorMessage = '';
+  List<dynamic> _allProducts = [];
+  List<dynamic> _filteredProducts = [];
+  String _searchQuery = "";
 
-  // Fungsi untuk mengambil data produk dari API
-  Future<void> fetchProducts() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = '';
-    });
+  Future<void> fetchAllProducts() async {
+    final response =
+    await http.get(Uri.parse('http://10.0.2.2:5000/api/products'));
 
-    try {
-      final response = await http.get(Uri.parse('http://10.0.2.2:5000/api/products'));
-
-      if (response.statusCode == 200) {
-        // Parsing respons JSON
-        final Map<String, dynamic> responseData = json.decode(response.body);
-
-        // Memastikan bahwa data produk berada di dalam kunci 'products'
-        if (responseData.containsKey('products')) {
-          final List<dynamic> productJson = responseData['products'];
-
-          setState(() {
-            // Mengubah data JSON menjadi objek Product
-            _products = productJson.map((json) => Product.fromJson(json)).toList();
-            _isLoading = false;
-          });
-        } else {
-          setState(() {
-            _isLoading = false;
-            _errorMessage = 'Products key not found in response';
-          });
-        }
-      } else {
-        setState(() {
-          _isLoading = false;
-          _errorMessage = 'Failed to load products';
-        });
-      }
-    } catch (error) {
+    if (response.statusCode == 200) {
       setState(() {
-        _isLoading = false;
-        _errorMessage = 'Error: $error';
+        _allProducts = json.decode(response.body)['products'];
+        _filteredProducts = _allProducts; // Inisialisasi awal
       });
+    } else {
+      throw Exception('Failed to load products');
     }
   }
 
   @override
   void initState() {
     super.initState();
-    fetchProducts();  // Ambil data produk saat halaman pertama kali dimuat
+    fetchAllProducts();
+  }
+
+  void _searchProducts(String query) {
+    setState(() {
+      _searchQuery = query;
+      _filteredProducts = _allProducts
+          .where((product) =>
+          product['name'].toLowerCase().contains(query.toLowerCase()))
+          .toList();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final numberFormat = NumberFormat("#,##0.00", "en_US"); // Format angka untuk harga produk
+    final cartProvider = Provider.of<CartProvider>(context);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('All Products'),
+        backgroundColor: Colors.white,
+        actions: [
+          Stack(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.shopping_cart),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ShoppingCartPage(),
+                    ),
+                  );
+                },
+              ),
+              if (cartProvider.cartCount > 0)
+                Positioned(
+                  right: 8,
+                  top: 8,
+                  child: CircleAvatar(
+                    radius: 10,
+                    backgroundColor: Colors.red,
+                    child: Text(
+                      '${cartProvider.cartCount}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator()) // Loading indicator jika data belum diambil
-          : _errorMessage.isNotEmpty
-          ? Center(child: Text(_errorMessage, style: TextStyle(color: Colors.red)))
-          : ListView.builder(
-        itemCount: _products.length,
-        itemBuilder: (context, index) {
-          final product = _products[index];
-          return Card(
-            margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
-            elevation: 4,
-            child: ListTile(
-              title: Text(
-                product.name,
-                style: TextStyle(fontWeight: FontWeight.bold),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: TextField(
+              onChanged: _searchProducts,
+              decoration: InputDecoration(
+                labelText: 'Cari Produk',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(40.0), // Membuat border bulat
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(20.0),
+                  borderSide: const BorderSide(color: Colors.teal),
+                ),
+                prefixIcon: const Icon(Icons.search),
+                contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
               ),
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Price: \$${numberFormat.format(product.price)}', style: TextStyle(fontSize: 14)),
-                  Text('Stock: ${product.stock}', style: TextStyle(fontSize: 14)),
-                ],
-              ),
-              trailing: Icon(Icons.chevron_right),
-              onTap: () {
-                // Aksi ketika produk di-tap (misalnya membuka halaman detail produk)
-                // Anda bisa menambahkan routing ke halaman detail produk di sini
-              },
             ),
-          );
+          ),
+          Expanded(
+            child: _filteredProducts.isEmpty
+                ? Center(
+              child: Text(
+                _searchQuery.isEmpty
+                    ? 'Tidak ada produk untuk ditampilkan.'
+                    : 'Produk dengan kata kunci "$_searchQuery" tidak ditemukan.',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            )
+                : Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: GridView.builder(
+                gridDelegate:
+                const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  childAspectRatio: 0.60,
+                ),
+                itemCount: _filteredProducts.length,
+                itemBuilder: (context, index) {
+                  final product = _filteredProducts[index];
+                  return Card(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10.0),
+                    ),
+                    elevation: 4.0,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ClipRRect(
+                          borderRadius: const BorderRadius.vertical(
+                              top: Radius.circular(10)),
+                          child: GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      ProductDetailPage(product: product),
+                                ),
+                              );
+                            },
+                            child: Image.network(
+                              'http://10.0.2.2:5000${product["image_url"]}',
+                              height: 100,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                product["name"],
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 4),
+                              Row(
+                                mainAxisAlignment:
+                                MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    "Rp ${product["price"]}",
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                          ElevatedButton(
+                            onPressed: () {
+                              cartProvider.addToCart({
+                                "id": product["id"],
+                                "name": product["name"],
+                                "price": product["price"],
+                                "image_url": "http://10.0.2.2:5000${product["image_url"]}",
+                              });
+                            },
+                            child: const Text(
+                              "+",
+                              style: TextStyle(fontSize: 12), // Mengurangi ukuran font untuk tombol lebih kecil
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2), // Mengurangi padding lebih kecil
+                              backgroundColor: Colors.teal,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(6), // Menurunkan nilai borderRadius
+                              ),
+                              minimumSize: const Size(20, 20), // Mengurangi ukuran tombol lebih kecil
+                            ),
+                          ),
+
+
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
+      // Menambahkan DrawerMenu ke dalam Scaffold
+      bottomNavigationBar: DrawerMenu(
+        onItemTapped: (index) {
+          // Anda bisa menambahkan logika navigasi sesuai kebutuhan
         },
+        selectedIndex: 1, // Produk adalah tab kedua
       ),
     );
   }

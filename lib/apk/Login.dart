@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:apk_apotek_unjaya/apk/SignUp.dart';
 import 'package:apk_apotek_unjaya/apk/navigation/home.dart';
-import 'package:apk_apotek_unjaya/apk/welcome_screen.dart';  // Mengimpor halaman WelcomeScreen
+import 'package:apk_apotek_unjaya/apk/welcome_screen.dart';
 import 'package:apk_apotek_unjaya/apk/api_service.dart';
-import 'package:apk_apotek_unjaya/apk/admin_page/dashboard_admin.dart';
 import 'package:apk_apotek_unjaya/apk/admin_page/admin_home_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
@@ -28,42 +28,54 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-
-  // Variabel untuk mengatur visibilitas password
   bool _isPasswordVisible = false;
-
-  // Fungsi untuk menangani login
 
   void _handleLogin() async {
     final email = _emailController.text;
     final password = _passwordController.text;
 
-    final response = await ApiService.loginUser(email, password);
+    try {
+      final response = await ApiService.loginUser(context, email, password);
 
-    if (response.containsKey('message')) {
-      final bool isAdmin = response['is_admin'] ?? false;
+      if (response.containsKey('message')) {
+        final bool isAdmin = response['is_admin'] ?? false;
+        final String? username = response['user']?['name'];
 
-      if (isAdmin) {
-        // Jika admin, langsung masuk ke halaman admin
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => AdminHomeScreen()), // Halaman Admin
-        );
+        if (username == null) {
+          throw Exception('Invalid response: username is null');
+        }
+
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('username', username);
+
+        String? token = await ApiService.getToken();
+        int? userId = await ApiService.getUserId();
+        print('Token: $token');
+        print('User ID: $userId');
+
+        if (isAdmin) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => AdminHomeScreen()),
+          );
+        } else {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => HomeScreen()),
+          );
+        }
       } else {
-        // Jika user biasa, masuk ke halaman user
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => HomeScreen()), // Halaman User biasa
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(response['error'] ?? 'Unknown error occurred')),
         );
       }
-    } else {
-      // Tampilkan pesan error jika login gagal
+    } catch (e) {
+      print('Error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(response['error'])),
+        SnackBar(content: Text('Login failed: $e')),
       );
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -79,7 +91,6 @@ class _LoginPageState extends State<LoginPage> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            // Navigasi kembali ke halaman WelcomeScreen
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(builder: (context) => const WelcomeScreen()),
@@ -93,13 +104,12 @@ class _LoginPageState extends State<LoginPage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Spacer(),
-            // Logo dan Judul
             Column(
               children: [
                 Image.asset(
-                  'assets/images/logo-apk.png', // Path gambar logo
-                  width: 100, // Lebar gambar
-                  height: 100, // Tinggi gambar
+                  'assets/images/logo-apk.png',
+                  width: 100,
+                  height: 100,
                 ),
                 const SizedBox(height: 16),
                 const Text(
@@ -118,7 +128,6 @@ class _LoginPageState extends State<LoginPage> {
               ],
             ),
             const SizedBox(height: 32),
-            // Email Input
             TextField(
               controller: _emailController,
               decoration: InputDecoration(
@@ -130,20 +139,19 @@ class _LoginPageState extends State<LoginPage> {
               ),
             ),
             const SizedBox(height: 16),
-            // Password Input
             TextField(
               controller: _passwordController,
-              obscureText: !_isPasswordVisible,  // Menampilkan atau menyembunyikan password
+              obscureText: !_isPasswordVisible,
               decoration: InputDecoration(
                 labelText: 'Masukan password',
                 prefixIcon: const Icon(Icons.lock),
                 suffixIcon: IconButton(
                   icon: Icon(
-                    _isPasswordVisible ? Icons.visibility : Icons.visibility_off, // Toggle icon
+                    _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
                   ),
                   onPressed: () {
                     setState(() {
-                      _isPasswordVisible = !_isPasswordVisible; // Toggle visibility
+                      _isPasswordVisible = !_isPasswordVisible;
                     });
                   },
                 ),
@@ -153,7 +161,6 @@ class _LoginPageState extends State<LoginPage> {
               ),
             ),
             const SizedBox(height: 8),
-            // Forgot Password
             Align(
               alignment: Alignment.centerRight,
               child: TextButton(
@@ -162,7 +169,6 @@ class _LoginPageState extends State<LoginPage> {
               ),
             ),
             const SizedBox(height: 16),
-            // Login Button
             SizedBox(
               width: double.infinity,
               height: 50,
@@ -181,7 +187,6 @@ class _LoginPageState extends State<LoginPage> {
               ),
             ),
             const SizedBox(height: 16),
-            // Sign Up
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -199,17 +204,10 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-            // OR Divider
-            const Row(
-              children: [
-                Expanded(child: Divider(thickness: 1)),
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8.0),
-                  child: Text('OR'),
-                ),
-                Expanded(child: Divider(thickness: 1)),
-              ],
+            const Spacer(),
+            const Text(
+              'Or',
+              style: TextStyle(fontSize: 16, color: Colors.grey),
             ),
             const SizedBox(height: 16),
             // Social Media Login Buttons with Images

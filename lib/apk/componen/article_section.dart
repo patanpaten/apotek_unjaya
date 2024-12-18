@@ -1,8 +1,7 @@
-// article_section.dart
 import 'package:flutter/material.dart';
 
 class ArticleSection extends StatelessWidget {
-  final List<Map<String, String>> articles;
+  final List<Map<String, String>> articles; // Daftar artikel yang diterima
 
   const ArticleSection({super.key, required this.articles});
 
@@ -11,21 +10,29 @@ class ArticleSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          "Artikel Kesehatan",
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        Text(
+          'Artikel Terbaru',
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 10),
+        // Menampilkan artikel menggunakan ListView
         ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
+          shrinkWrap: true, // Untuk membuat listview tidak perlu scroll
+          physics: const NeverScrollableScrollPhysics(), // Menghindari scrolling pada listview
           itemCount: articles.length,
           itemBuilder: (context, index) {
-            final article = articles[index];
             return Card(
+              margin: const EdgeInsets.only(bottom: 10),
               child: ListTile(
-                title: Text(article["title"]!),
-                subtitle: Text(article["content"]!),
+                title: Text(articles[index]['title']!),
+                subtitle: Text(
+                  articles[index]['content']!,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis, // Agar deskripsi tidak meluber
+                ),
+                onTap: () {
+                  // Tindakan saat artikel diklik (misalnya membuka artikel lengkap)
+                },
               ),
             );
           },
